@@ -44,6 +44,10 @@ args = vars(ap.parse_args())
 # initialize the video stream and allow the cammera sensor to warmup
 camera = VideoStream(usePiCamera=args["picamera"] > 0).start()
 
+#forca a camera a ter resolucao 640x480
+camera.set(3,640)
+camera.set(4,480)
+
 #camera = cv2.VideoCapture(0)
 PrimeiroFrame = None
 
