@@ -11,13 +11,13 @@ HOST = ''
 PORT = 8000
 
 thresholdParam = 70
+frameID = 1;
 
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
 clientAddress = (HOST, PORT)
 serverSocket.bind(clientAddress)                                    # Bind connection to Raspberry client
 
-print('waiting for a connection')
-
+print('Waiting for a connection...')
 # Listen for incoming connections
 serverSocket.listen(1)
 
@@ -26,6 +26,11 @@ connection = serverSocket.accept()[0].makefile('rb')
 
 try:
     while True:
+        
+        frameClass = struct.unpack('<I', connection.read(struct.calcsize('<I')))[0]
+        
+        print(frameClass)
+        
         # Read the length of the image as a 32-bit unsigned int. If the
         # length is zero, quit the loop
         image_len = struct.unpack('<L', connection.read(struct.calcsize('<L')))[0]
@@ -45,14 +50,20 @@ try:
         
         image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)          # Converting image stream array into may numpy format 
         
-        print("Decoding...")
+        print("Decoding and saving...")
         
         frame = cv2.imdecode(image_mat, 1)                                          # Decoding the image 
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                             # Apply Gray filter
         frame = cv2.threshold(frame, thresholdParam, 255, cv2.THRESH_BINARY)[1]     # Binarizing image
         
+        # Save image in path format:
+        # data_training/{class}.{image_num}.jpg
+        cv2.imwrite('dataTraining/{frameClass}.{frameID}.jpg'.format(frameClass=frameClass, frameID=frameID) , frame)
+        
         cv2.imshow("Streaming from Raspberry Pi", frame)
         cv2.waitKey(1)
+        
+        frameID += 1
         
 finally:
     connection.close()

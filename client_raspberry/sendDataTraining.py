@@ -1,6 +1,7 @@
 # Picamera reference: http://www.pyimagesearch.com/2015/03/30/accessing-the-raspberry-pi-camera-with-opencv-and-python/
 # Socket reference: https://pymotw.com/2/socket/tcp.html
 # Streaming by socket reference: http://picamera.readthedocs.io/en/release-1.9/recipes1.html#capturing-to-a-network-stream
+# Struct referece: https://docs.python.org/2/library/struct.html
 
 __author__ = 'Igor Gallon'
 
@@ -12,11 +13,13 @@ import socket
 import struct
 
 # PC Server addres to connect
-HOST = '10.0.0.106'
+HOST = '10.0.0.105'
 PORT = 8000
 res = Resolution(320, 240);					    # Frame resolution
 thresholdParam = 90
 maxThreshold = 255
+
+frameClass = 1                                                      # ID of classification of current frame (1: foward / 2: left / 3: right)
 
 clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
 serverAddress = (HOST, PORT)
@@ -42,10 +45,16 @@ try:
         start = time.time()
         stream = io.BytesIO()
         for img in camera.capture_continuous(stream, 'jpeg'):
+            
+            # Write the command pressioned when training -> class of current sent frame
+            connection.write(struct.pack('<I', frameClass))
+            connection.flush()
+            
             # Write the length of the capture to the stream and flush to
             # ensure it actually gets sent
             connection.write(struct.pack('<L', stream.tell()))
             connection.flush()
+                        
             # Rewind the stream and send the image data over the wire
             stream.seek(0)
             connection.write(stream.read())
