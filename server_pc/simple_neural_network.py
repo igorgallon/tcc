@@ -1,4 +1,6 @@
-# import the necessary packages
+# References: http://www.pyimagesearch.com/2016/09/26/a-simple-neural-network-with-python-and-keras/
+# imutils library reference: https://github.com/jrosebr1/imutils
+
 from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import train_test_split
 from keras.models import Sequential
@@ -13,52 +15,41 @@ import argparse
 import cv2
 import os
 
-size = (32,24)
+size = (32,24)								# Size of imported images (10x smaller than original)
+numClasses = 4								# Foward / Left / Right / Backward
+testSize = 0.25								# 25% of data destinated to test set
 
-# grab the list of images that we'll be describing
-print("[INFO] describing images...")
-imagePaths = list(paths.list_images("dataTraining"))
+# Gets list of images from './dataTraining' path
+print("Getting list of images...")
+imageList = list(paths.list_images("./dataTraining"))
 
-# initialize the data matrix and labels list
+# Data and labels
 data = []
 labels = []
 
-# loop over the input images
-for (i, imagePath) in enumerate(imagePaths):
-	# load the image and extract the class label (assuming that our
-	# path as the format: /path/to/dataset/{class}.{image_num}.jpg
-	image = cv2.imread(imagePath)
-	label = imagePath.split(os.path.sep)[-1].split(".")[0]
-
-	# construct a feature vector raw pixel intensities, then update
-	# the data matrix and labels list
-	features = cv2.resize(image, size).flatten()
-	data.append(features)
-	labels.append(label)
+# Load images into 'data' and extracts the class label into 'labels'
+for (i, img) in enumerate(imageList):
+	image = cv2.imread(img)						# Reads the image
+	imageRawVector = cv2.resize(image, size).flatten()		# Creates a vector of raw pixel intensities (length = w*h*3) - RGB
+	data.append(imageRawVector)					# Appends image as vector format
 	
-	print("[INFO] processed {}/{}".format(i, len(imagePaths)))
+	label = img.split(os.path.sep)[-1].split(".")[0]		# Extracts the class label in the format: 'data_training/{class_label}.{image_num}.jpg'
+	labels.append(int(label))					# Appends label as integer
 
-# encode the labels, converting them from strings to integers
-le = LabelEncoder()
-labels = le.fit_transform(labels)
+	print("Processed {} images of {}".format(i, len(imageList)))
 
-# scale the input image pixels to the range [0, 1], then transform
-# the labels into vectors in the range [0, num_classes] -- this
-# generates a vector for each label where the index of the label
-# is set to `1` and all other entries to `0`
+
 data = np.array(data) / 255.0
-labels = np_utils.to_categorical(labels, 3)	# Foward (1): [0,1,0,0] / Left (2): [0,0,1,0] / Right (3): [0,0,0,1]
+labels = np_utils.to_categorical(labels, numClasses)	# Foward (1): [1,0,0,0] / Left (2): [0,1,0,0] / Right (3): [0,0,1,0] / Backward (0): [0,0,0,1]
 
-# partition the data into training and testing splits, using 75%
-# of the data for training and the remaining 25% for testing
-print("[INFO] constructing training/testing split...")
-(trainData, testData, trainLabels, testLabels) = train_test_split(data, labels, test_size=0.25, random_state=42)
+print("Partitioning data in training/testing split...")
+(trainData, testData, trainLabels, testLabels) = train_test_split(data, labels, test_size=testSize, random_state=42)
 
-# define the architecture of the network
+# Modeling the network
 model = Sequential()
 model.add(Dense(576, input_dim=2304, init="uniform", activation="relu"))
 model.add(Dense(288, init="uniform", activation="relu"))
-model.add(Dense(3))
+model.add(Dense(4))
 model.add(Activation("softmax"))
 
 # train the model using SGD

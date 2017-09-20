@@ -14,7 +14,7 @@ PORT = 8000
 thresholdParam = 70
 
 frameID = 1
-frameClass = 0                                                      # ID of classification of current frame (1: foward / 2: left / 3: right)
+frameClass = 0                                                      # ID of classification of current frame (1: foward / 2: left / 3: right / 4: backward)
 
 serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
 clientAddress = (HOST, PORT)
@@ -63,9 +63,11 @@ try:
                     frameClass = 2
                 if event.key == K_RIGHT:
                     frameClass = 3
+                if event.key == K_DOWN:
+                    frameClass = 4;                
                 
                 # Save image in path format:
-                # data_training/{class}.{image_num}.jpg
+                # data_training/{class_label}.{image_num}.jpg
                 cv2.imwrite('dataTraining/{classification}.{idf}.jpg'.format(classification=frameClass , idf=frameID) , frame)
                 frameID += 1
         
