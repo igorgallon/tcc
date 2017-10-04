@@ -18,6 +18,9 @@ import os
 size = (32,24)								# Size of imported images (10x smaller than original)
 numClasses = 4								# Foward / Left / Right / Backward
 testSize = 0.25								# 25% of data destinated to test set
+nNodesInput = 32*24*3
+nNodesOutput = numClasses
+actvFunHidden = "relu"
 
 # Gets list of images from './dataTraining' path
 print("Getting list of images...")
@@ -39,17 +42,17 @@ for (i, img) in enumerate(imageList):
 	print("Processed {} images of {}".format(i, len(imageList)))
 
 
-data = np.array(data) / 255.0
+data = np.array(data) / 255.0				# Converts the pixel values from [0, 255.0] to [0, 1] interval
 labels = np_utils.to_categorical(labels, numClasses)	# Foward (1): [1,0,0,0] / Left (2): [0,1,0,0] / Right (3): [0,0,1,0] / Backward (0): [0,0,0,1]
 
-print("Partitioning data in training/testing split...")
-(trainData, testData, trainLabels, testLabels) = train_test_split(data, labels, test_size=testSize, random_state=42)
+print("Partitioning data in training (75%) / testing split (25%)...")
+(trainData, testData, trainLabels, testLabels) = train_test_split(data, labels, test_size=testSize)
 
 # Modeling the network
 model = Sequential()
-model.add(Dense(576, input_dim=2304, init="uniform", activation="relu"))
-model.add(Dense(288, init="uniform", activation="relu"))
-model.add(Dense(4))
+model.add(Dense(576, input_dim=nNodesInput, init="uniform", activation=actvFunHidden))
+model.add(Dense(288, init="uniform", activation=actvFunHidden))
+model.add(Dense(nNodesOutput))
 model.add(Activation("softmax"))
 
 # train the model using SGD
