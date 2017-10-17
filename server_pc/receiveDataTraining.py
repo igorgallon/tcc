@@ -5,66 +5,85 @@ import numpy as np
 import io
 import socket
 import struct
-from PIL import Image
 
-HOST = ''
-PORT = 8000
+class ReceiveDataTraining(object):
+    
+    def __init__(self, host):
+        # Listen to all connections
+        self.HOST = host
+        self.PORT = 8000
+        
+        # Parameter used in binaryzation
+        self.thresholdParam = 70
 
-thresholdParam = 70
-frameID = 1;
-
-serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
-clientAddress = (HOST, PORT)
-serverSocket.bind(clientAddress)                                    # Bind connection to Raspberry client
-
-print('Waiting for a connection...')
-# Listen for incoming connections
-serverSocket.listen(1)
-
-# Accept a single connection and make a file-like object out of it
-connection = serverSocket.accept()[0].makefile('rb')
-
-try:
-    while True:
+        self.frameID = 1
+        self.verification = -1
         
-        frameClass = struct.unpack('<I', connection.read(struct.calcsize('<I')))[0]
+        self.openConnection()
         
-        print(frameClass)
         
-        # Read the length of the image as a 32-bit unsigned int. If the
-        # length is zero, quit the loop
-        image_len = struct.unpack('<L', connection.read(struct.calcsize('<L')))[0]
-        if not image_len:
-            break
-        # Construct a stream to hold the image data and read the image
-        # data from the connection
-        image_stream = io.BytesIO()
-        image_stream.write(connection.read(image_len))
-        # Rewind the stream, open it as an image with PIL and do some
-        # processing on it
-        image_stream.seek(0)
-        #Image.open(image_stream)
-        #print('Image is %dx%d' % image.size)
-        #image.verify()
-        #print('Image is verified')
+    def openConnection(self):
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
+        self.clientAddress = (self.HOST, self.PORT)
+        self.serverSocket.bind(self.clientAddress)                               # Bind connection to Raspberry client
         
-        image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)          # Converting image stream array into may numpy format 
+        print("[SERVER] Waiting for a Raspberry connection...")
         
-        print("Decoding and saving...")
+        # Listen for incoming connections
+        self.serverSocket.listen(1)
         
-        frame = cv2.imdecode(image_mat, 1)                                          # Decoding the image 
-        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                             # Apply Gray filter
-        frame = cv2.threshold(frame, thresholdParam, 255, cv2.THRESH_BINARY)[1]     # Binarizing image
+        print("[SERVER] Connection estabilished...")
+        # Accept a single connection and make a file-like object out of it
+        self.connection = self.serverSocket.accept()[0].makefile('rb')
+    
+    
+    def closeConnection(self):
+        print("[SERVER] Closing connection")
+        self.connection.close()
+        self.serverSocket.close()        
         
-        # Save image in path format:
-        # data_training/{class}.{image_num}.jpg
-        cv2.imwrite('dataTraining/{frameClass}.{frameID}.jpg'.format(frameClass=frameClass, frameID=frameID) , frame)
         
-        cv2.imshow("Streaming from Raspberry Pi", frame)
-        cv2.waitKey(1)
+    def receive(self):
         
-        frameID += 1
-        
-finally:
-    connection.close()
-    serverSocket.close()
+        try:
+            while True:        
+                # Read the verification byte. If the verification is zero, quit the loop
+                self.verification = struct.unpack('<I', self.connection.read(struct.calcsize('<I')))[0]
+                if self.verification == 0:
+                    break        
+                
+                # Read the classification of the current frame
+                # (1: foward / 2: left / 3: right / 4: backward)
+                frameClass = struct.unpack('<I', self.connection.read(struct.calcsize('<I')))[0]        
+                
+                print("Classification received: {}".format(frameClass))
+                
+                #Read the length of the image as a 32-bit unsigned int
+                image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
+                
+                #Construct a stream to hold the image data and read the image
+                #data from the connection
+                image_stream = io.BytesIO()
+                image_stream.write(self.connection.read(image_len))
+                #Rewind the stream, open it as an image with PIL and do some
+                #processing on it
+                image_stream.seek(0)
+                
+                image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)          # Converting image stream array into may numpy format 
+                
+                print("[SERVER] Decoding frame...")
+                
+                frame = cv2.imdecode(image_mat, 1)                                          # Decoding the image 
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                             # Apply Gray filter
+                frame = cv2.threshold(frame, self.thresholdParam, 255, cv2.THRESH_BINARY)[1]     # Binarizing image
+                
+                #Save image in path format:
+                #data_training/{class_label}.{image_num}.jpg
+                cv2.imwrite('dataTraining/{classification}.{idf}.jpg'.format(classification=frameClass , idf=self.frameID) , frame)
+                self.frameID += 1
+                
+                cv2.imshow("Streaming from Raspberry Pi", frame)
+                cv2.waitKey(1)
+                
+        finally:
+            self.closeConnection()
