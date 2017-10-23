@@ -5,14 +5,15 @@ import sys
 import os
 from Messages import Messages
 from sendDataTraining import SendDataTraining
+from receiveModel import ReceiveModel
 
 currentState   = "stopped";
 msg = ""
 
 def training(arduino):
     
-    #serverPC = "192.168.1.103"
-    serverPC = "10.0.0.108"
+    serverPC = "192.168.1.103"
+    #serverPC = "10.0.0.108"
     
     # Create connection socket with Server PC
     train = SendDataTraining(serverPC, arduino)
@@ -22,9 +23,15 @@ def training(arduino):
     
     
 def predicting(arduino):
-    pass
-
-
+    
+    print("[Raspberry CONTROLLER] Waiting for model from Server PC...")
+    model = ReceiveModel('')
+    model.receive()
+    
+    predict = PredictingFrames(arduino)
+    
+    
+    
 # Instantiate Serial comunication
 print("[Raspberry CONTROLLER] Estabilishing Serial Communication with Arduino...")
 arduino = serial.Serial('/dev/ttyACM0', 9600)

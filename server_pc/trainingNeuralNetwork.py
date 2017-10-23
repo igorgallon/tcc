@@ -23,7 +23,7 @@ class TrainingNeuralNetwork(object):
 		self.testSize = 0.25								# 25% of data destinated to test set
 		
 		self.nNodesInput = 32*24*3
-		self.nNodesOutput = numClasse
+		self.nNodesOutput = self.numClasses
 		self.actvFunHidden = "relu"
 
 		# Data and labels
@@ -57,7 +57,7 @@ class TrainingNeuralNetwork(object):
 		# Modeling the network
 		model = Sequential()
 		model.add(Dense(576, input_dim=self.nNodesInput, init="uniform", activation=self.actvFunHidden))
-		model.add(Dense(288, init="uniform", activation=self.actvFunHidden))
+		model.add(Dense(32, init="uniform", activation=self.actvFunHidden))
 		model.add(Dense(self.nNodesOutput))
 		model.add(Activation("softmax"))
 		
