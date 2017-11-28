@@ -7,7 +7,6 @@ void setup(){
   pinMode(LED, OUTPUT);
   // initialize serial
   Serial.begin(9600);
-  serialData.reserve(200);
 }
  
 void procesSerialData(){

@@ -1,4 +1,10 @@
-from sendModel import SendModel
+from trainingNeuralNetwork import TrainingNeuralNetwork
 
-sm = SendModel('192.168.0.104')
-sm.send()
+neuralnetwork = TrainingNeuralNetwork()
+
+strMsg = input("Train? [y/n]")
+
+while strMsg == "y":
+    model = neuralnetwork.run()
+    strMsg = input("Train? [y/n]")
+    

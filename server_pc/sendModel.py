@@ -14,7 +14,8 @@ class SendModel(object):
     def openConnection(self):
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
         self.clientAddress = (self.HOST, self.PORT)
-    
+        
+        print("[SERVER SEND MODEL] Trying to connect to Raspberry...")
         self.serverSocket.connect(self.clientAddress)                            # Connect to Raspberry client
     
         # Make a file-like object out of the connection
@@ -22,11 +23,18 @@ class SendModel(object):
         
         
     def closeConnection(self):
+        print("[SERVER SEND MODEL] Closing connection...")
         self.connection.close()
         self.serverSocket.close()
     
     
     def send(self):
+        
+        endTransmission = 0
+        
+        # Write the byte validation of message (1: valid / 0: not else)
+        self.connection.write(struct.pack('<I', 1))
+        self.connection.flush()           
         
         with open('model.json', 'r') as json_file:
             # Load the model from saved file - serialyze json object 
@@ -34,9 +42,6 @@ class SendModel(object):
             jsonString = json.dumps(json_data)
             jsonBytes = jsonString.encode('utf-8')
             
-            # Write the byte validation of message (1: valid / 0: not else)
-            self.connection.write(struct.pack('<I', 1))
-            self.connection.flush()            
             # Send the length of JSON string
             self.connection.write(struct.pack('<L', len(jsonBytes)))
             self.connection.flush()
@@ -44,7 +49,7 @@ class SendModel(object):
             self.connection.write(jsonBytes)
             self.connection.flush()
             
-            print("[SEND MODEL] JSON object sent")
+            print("[SERVER SEND MODEL] Neural Network Model sent...")
             
             
         with open('model.h5', 'rb') as weights:
@@ -56,7 +61,13 @@ class SendModel(object):
             self.connection.write(modelBytes)
             self.connection.flush()
             
-            print("[SEND MODEL] Model weights sent")
+            print("[SERVER SEND MODEL] Weights sent...")
         
         # Write the byte validation zero signalling the end of trasmission
-        self.connection.write(struct.pack('<I', 0))         
+        self.connection.write(struct.pack('<I', 0))
+        self.connection.flush()
+        
+        self.closeConnection()
+
+        
+        

@@ -5,17 +5,30 @@ import sys
 import os
 
 def main():
-
-    s = serial.Serial('/dev/ttyACM0', 9600)
+    
+    print("Connecting Arduino")
+    #s = serial.Serial('/dev/ttyACM0', 9600)
+    s = serial.Serial('/dev/ttyAMA0', 9600)
+    print("Connected!")
     
     while 1:
-        s.write("LED\n")
-        print("Turining ON")
-        time.sleep(1)
-        s.write("OFF\n")
-        print("Turining OFF")
-        time.sleep(1)        
-
+        
+        try:
+            print("Turining ON")
+            try:
+                s.write("LED\n")
+                time.sleep(1)
+            except Exception as e:
+                print(str(e))
+                pass
+            
+            print("Turining OFF")
+            s.write("OFF\n")
+            time.sleep(1)
+        
+        except Exception as e:
+            print(str(e))        
+        
 if __name__ == '__main__':
     try:
         main()

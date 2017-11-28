@@ -5,8 +5,15 @@
 
 __author__ = 'Igor Gallon'
 
+from keras.layers import Dense
+from keras.models import model_from_json
+from keras.models import load_model
+from keras.optimizers import SGD
+from keras.utils import np_utils
 from Resolution import Resolution
 from Messages import Messages
+import numpy as np
+import cv2
 import picamera
 import io
 import time
@@ -15,111 +22,102 @@ import struct
 
 class PredictingFrames(object):
     
-    def __init__(self, host, serialPort):
-        # PC Server address to connect
-        # 192.168.1.103
-        self.HOST = host
-        self.PORT = 8000
-        self.res = Resolution(320, 240);					    # Frame resolution
-        
-        self.frameClass = 1
-        
+    def __init__(self, serialPort):
+               
         # Instantiate Serial comunication
         self.arduino = serialPort
+        self.frameRate = 10                     # 10 frames per second
+        self.sizeFrame = Resolution(320, 240)
+        self.sizeData = (32, 24)
+        self.thresholdParam = 30
+        self.numClasses = 4
         
-        #self.arduino = serial.Serial('/dev/ttyACM0', 9600)
-        self.openConnection()
+        with open("model.json", "r") as json_file:
+            print("[PREDICTION] Loading model...")
+            model_json = json_file.read()
+            self.model = model_from_json(model_json)
+            
+        print("[PREDICTION] Compiling model...")
+        sgd = SGD(lr=0.01)
+        self.model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
+            
+        print("[PREDICTION] Loading weights...")
+        self.model.load_weights("model.h5")
         
+        print("[PREDICTION] Model and Weights have been loaded successfully!")
         
-    def openConnection(self):
-        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
-        self.serverAddress = (self.HOST, self.PORT)
-        
-        print("Trying to connect...")
-        self.clientSocket.connect(self.serverAddress)                            # Connect to PC Server
-        print("Connected!")
-        # Make a file-like object out of the connection
-        self.connection = self.clientSocket.makefile('wb')
-        
-    def closeConnection(self):
-        self.connection.close()
-        self.clientSocket.close()
-        
-    def convertToClass(self, message):
+    
+    def convertToMessage(self, classification):
         classes = {
-            Messages.msgForward:  1,
-            Messages.msgLeft:     2,
-            Messages.msgRight:    3,
-            Messages.msgBackward: 4,
+            0: Messages.msgBackward,
+            1: Messages.msgForward,
+            2: Messages.msgLeft,
+            3: Messages.msgRight
         }
         
-        return classes.get(message, -1)    
-        
-    def sendFrames(self):
+        return classes.get(classification, Messages.msgForward)
+    
+    
+    def run(self):
         
         msg = ""
+        direction = ""
+        prob = []
         classification = 0
         
+        print("[PREDICTION] Starting prediction...")
         try:
+            
             # Initializing picamera
             with picamera.PiCamera() as camera:
+                print("[PREDICTION] Initializing picamera...")
                 
-                camera.resolution = (self.res.width, self.res.height)       # Sets the camera resolution
-                camera.framerate = 20                                       # 20 frames per second
-        
+                camera.resolution = (self.sizeFrame.width, self.sizeFrame.height)   # Sets the camera resolution
+                camera.framerate = self.frameRate
                 camera.start_preview()                                      # Start a preview
                 time.sleep(2)                                               # Wait camera initializing (adjust luminosity or focus)
                 
                 stream = io.BytesIO()
                 
-                print("Start streaming")
-                
                 while 1:
-                
+                    
+                    if self.arduino.inWaiting() > 0:
+                        msg = self.arduino.readline()
+                    
+                    if msg == Messages.msgStop:
+                        break
+                    
                     try:
-                        # Check if Arduino sent data
-                        msg = self.arduino.readline();
+                        #Capture frame from camera
+                        camera.capture(stream, format='jpeg')
+                        image_mat = np.fromstring(stream.getvalue(), dtype=np.uint8)                    # Converting image stream array into may numpy format 
+                        frame = cv2.imdecode(image_mat, 1)                                              # Decoding the image 
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                                 # Apply Gray filter (convert to 1-channel)
+                        frame = cv2.threshold(frame, self.thresholdParam, 255, cv2.THRESH_BINARY)[1]    # Binarizing image (0 and 1 pixel values)                
+                        frame = cv2.resize(frame, self.sizeData)                                        # Resize image
+                        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB).flatten()                       # Convert image to RGB (3-channels) and flat into an 1D-array
+                        array = np.array(frame)/255.0                                                   # Convert to numpy array and normalize pixel values from [0,255] to [0,1]
+                        array = array[None, :]                                                          # Verticalize array
                         
-                        print("Send frame for {}".format(msg))
+                        prob = self.model.predict(array)                                                # Get the probabilities array from prediction of frame
+                        # Get the index of max value in prabilities array
+                        # Backward (0): [max, _, _, _] / Forward (1): [_, max, _, _] / Left (2): [_, _, max, _] / Right (3): [_, _, _, max]
+                        classification = np.argmax(prob)
                         
-                        if msg != "":
-                            
-                            if msg == Messages.msgStop:
-                                break                    
-                            
-                            #Capture frame from camera
-                            camera.capture(stream, 'jpeg')
-                            
-                            #Write the byte validation of message (1: valid / 0: not else)
-                            self.connection.write(struct.pack('<I', 1))
-                            self.connection.flush()
-                            
-                            classification = self.convertToClass(msg)
-                            
-                            #Write the command pressioned when training -> class of current sent frame
-                            self.connection.write(struct.pack('<I', classification))
-                            self.connection.flush()
-                            
-                            #Write the length of the capture to the stream and flush to
-                            #ensure it actually gets sent
-                            self.connection.write(struct.pack('<L', stream.tell()))
-                            self.connection.flush()
-                            
-                            print("[TRAINING] Sending frame with classification: {:d}".format(classification))
-                            
-                            #Rewind the stream and send the image data over the wire
-                            stream.seek(0)
-                            self.connection.write(stream.read())
-                            
-                            #Reset the stream for the next capture
-                            stream.seek(0)
-                            stream.truncate()
-                    except:
-                        pass
-                
-                print("[TRAINING] Stop...")
-                # Write the byte validation zero signalling the end of trasmission
-                self.connection.write(struct.pack('<I', 0))
-            
+                        direction = self.convertToMessage(classification)
+                        print("[PREDICTION] Direction predicted {} Probabilities {} ".format(direction, prob))
+                        
+                        # Send direction to Arduino
+                        self.arduino.write(direction)
+                        
+                    except Exception as e:
+                        print(str(e))
+                        
+                    #Reset the stream for the next capture
+                    stream.seek(0)
+                    stream.truncate()
+                    
+        except Exception as e:
+            print(str(e))
         finally:
-            self.closeConnection()
+            print("[PREDICTION] Stopping... ")

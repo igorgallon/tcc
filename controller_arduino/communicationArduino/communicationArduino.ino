@@ -6,17 +6,18 @@ unsigned long BACKWARD      = 0x2FDF807;
 unsigned long LEFT          = 0x2FD7887;
 unsigned long RIGHT         = 0x2FD58A7;
 unsigned long STOP          = 0x2FDC837;
+unsigned long PAUSE         = 0x2FD38C7;
 unsigned long TRAINING_MODE = 0x2FD807F;  // Key 1
 unsigned long PREDICT_MODE  = 0x2FD40BF;  // Key 2
 unsigned long IDLE_MODE     = 0x2FDC03F;  // Key 3
 
 // Pins
-int M1A       = 5;              // Motor 1 - A
-int M1B       = 6;              // Motor 1 - B
-int M1EN      = 7;              // Motor 1 - Enable
+int M1A       = 4;              // Motor 1 - A
+int M1B       = 5;              // Motor 1 - B
+int M1EN      = 6;              // Motor 1 - Enable (PWM)
 int M2A       = 8;              // Motor 2 - A
 int M2B       = 9;              // Motor 2 - B
-int M2EN      = 10;             // Motor 2 - Enable
+int M2EN      = 10;             // Motor 2 - Enable (PWM)
 int RECV_PIN  = 11;             // IR Receiver
 
 // Messages for Serial comunication
@@ -31,6 +32,8 @@ char msgStop[]        = "ST\n";
 IRrecv irrecv(RECV_PIN);
 decode_results results;
 
+int speedM1 = 115;
+int speedM2 = 115;
 String serialData = "";         // Data received from Serial comunication
 boolean onSerialRead = false;   // Determines when stop to receive data
 float codeIR;                   // Code got from IR control
@@ -42,11 +45,11 @@ void setup() {
   pinMode(M2B, OUTPUT);
   pinMode(M1EN, OUTPUT);
   pinMode(M2EN, OUTPUT);
-  
-  irrecv.enableIRIn();          // Setting the IR sensor receiver
-  
+
   Serial.begin(9600);           // Initialize serial comunication
   serialData.reserve(200);
+  
+  irrecv.enableIRIn();          // Setting the IR sensor receiver
 }
 
 void loop(){
@@ -55,13 +58,13 @@ void loop(){
     codeIR = (results.value);
         
     if(codeIR == TRAINING_MODE){
+      irrecv.resume();                          // Receives the next value from IR sensor
       training();
     }
     if(codeIR == PREDICT_MODE){
+      irrecv.resume();                          // Receives the next value from IR sensor
       predicting();
     }
-    
-    irrecv.resume();                          // Receives the next value from IR sensor
   }
 }
 
@@ -78,30 +81,31 @@ void training(){
       irrecv.resume();
     } 
   }
-
-  Serial.write(msgStop);                      // Inform the Rasberry that the Training mode has finished
-  drive(STOP);                                // Stop motors
-  disableMotor();                             // Disable motors
 }
 
 void predicting(){
 
   Serial.write(msgPredicting);                // Inform the Raspberry that the Predicting mode has begun
+
   enableMotor();
 
+  codeIR = 0;
+  
   while(codeIR != STOP){
-    if(onSerialRead){
+    serialEvent();
+    
+    if(onSerialRead){     
       if(serialData == msgForward){
-        drive(FORWARD);
+        forward();
       }
       if(serialData == msgLeft){
-        drive(LEFT);
+        left();
       }
       if(serialData == msgRight){
-        drive(RIGHT);
+        right();
       }
       if(serialData == msgBackward){
-        drive(BACKWARD);
+        backward();
       }
       
       serialData = "";
@@ -116,7 +120,8 @@ void predicting(){
     
   }
 
-  drive(STOP);
+  Serial.write(msgStop);
+  stopMotor();
   disableMotor();
 }
 
@@ -141,12 +146,16 @@ void drive(float command){
   if(command == STOP){
     Serial.write(msgStop);
     stopMotor();
+    disableMotor();                             // Disable motors
+  }
+  if(command == PAUSE){
+    stopMotor();
   }
 }
 
 void enableMotor(){
-  digitalWrite(M1EN, HIGH);   // Enable Motor 1
-  digitalWrite(M2EN, HIGH);   // Enable Motor 2
+  analogWrite(M1EN, speedM1);   // Enable Motor 1
+  analogWrite(M2EN, speedM2);   // Enable Motor 2
 }
 
 void disableMotor(){
@@ -170,7 +179,7 @@ void backward(){
 
 void left(){
   digitalWrite(M1A, LOW);     // Turn backward Motor 1
-  digitalWrite(M1B, HIGH);
+  digitalWrite(M1B, LOW);
   digitalWrite(M2A, HIGH);    // Turn forward Motor 2
   digitalWrite(M2B, LOW);
 }
@@ -179,7 +188,7 @@ void right(){
   digitalWrite(M1A, HIGH);    // Turn forward Motor 1
   digitalWrite(M1B, LOW);
   digitalWrite(M2A, LOW);     // Turn backward Motor 2
-  digitalWrite(M2B, HIGH);
+  digitalWrite(M2B, LOW);
 }
   
 void stopMotor(){
@@ -195,8 +204,10 @@ void serialEvent(){
     char inChar = (char)Serial.read();
     if (inChar == '\n'){
       onSerialRead = true;
+      serialData += '\n';
     }else{
       serialData += inChar;
     }
   }
 }
+

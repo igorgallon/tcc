@@ -27,7 +27,6 @@ class SendDataTraining(object):
         # Instantiate Serial comunication
         self.arduino = serialPort
         
-        #self.arduino = serial.Serial('/dev/ttyACM0', 9600)
         self.openConnection()
         
         
@@ -35,22 +34,23 @@ class SendDataTraining(object):
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
         self.serverAddress = (self.HOST, self.PORT)
         
-        print("Trying to connect...")
+        print("[TRAINING] Trying to connect to Server...")
         self.clientSocket.connect(self.serverAddress)                            # Connect to PC Server
-        print("Connected!")
+        print("[TRAINING] Connected!")
         # Make a file-like object out of the connection
         self.connection = self.clientSocket.makefile('wb')
         
     def closeConnection(self):
+        print("[TRAINING] Closing connection...")
         self.connection.close()
         self.clientSocket.close()
         
     def convertToClass(self, message):
         classes = {
+            Messages.msgBackward: 0,
             Messages.msgForward:  1,
             Messages.msgLeft:     2,
-            Messages.msgRight:    3,
-            Messages.msgBackward: 4,
+            Messages.msgRight:    3
         }
         
         return classes.get(message, -1)    
@@ -65,14 +65,14 @@ class SendDataTraining(object):
             with picamera.PiCamera() as camera:
                 
                 camera.resolution = (self.res.width, self.res.height)       # Sets the camera resolution
-                camera.framerate = 20                                       # 20 frames per second
+                camera.framerate = 10                                       # 20 frames per second
         
                 camera.start_preview()                                      # Start a preview
                 time.sleep(2)                                               # Wait camera initializing (adjust luminosity or focus)
                 
                 stream = io.BytesIO()
                 
-                print("Start streaming")
+                print("[TRAINING] Start streaming...")
                 
                 while 1:
                 
@@ -80,7 +80,7 @@ class SendDataTraining(object):
                         # Check if Arduino sent data
                         msg = self.arduino.readline();
                         
-                        print("Send frame for {}".format(msg))
+                        print("[TRAINING] Sending frame with class: {}".format(msg))
                         
                         if msg != "":
                             
@@ -104,8 +104,6 @@ class SendDataTraining(object):
                             #ensure it actually gets sent
                             self.connection.write(struct.pack('<L', stream.tell()))
                             self.connection.flush()
-                            
-                            print("[TRAINING] Sending frame with classification: {:d}".format(classification))
                             
                             #Rewind the stream and send the image data over the wire
                             stream.seek(0)

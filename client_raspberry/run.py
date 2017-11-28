@@ -1,4 +1,3 @@
-from receiveModel import ReceiveModel
+from predict import PredictingFrames
 
-rv = ReceiveModel('')
-rv.receive()
+p = PredictingFrames()

@@ -18,18 +18,18 @@ class ReceiveModel(object):
         self.serverAddress = (self.HOST, self.PORT)
         self.clientSocket.bind(self.serverAddress)                               # Bind connection to Server PC
         
-        print("[RASPBERRY] Waiting for Server connection...")
+        print("[RASPBERRY RECEIVE MODEL] Waiting for Server connection...")
         
         # Listen for incoming connections
         self.clientSocket.listen(1)
         
-        print("[RASPBERRY] Connection estabilished...")
+        print("[RASPBERRY RECEIVE MODEL] Connection estabilished...")
         # Accept a single connection and make a file-like object out of it
         self.connection = self.clientSocket.accept()[0].makefile('rb')
     
     
     def closeConnection(self):
-        print("[RASPBERRY] Closing connection")
+        print("[RASPBERRY RECEIVE MODEL] Closing connection")
         self.connection.close()
         self.clientSocket.close()        
         
@@ -39,8 +39,9 @@ class ReceiveModel(object):
         try:
             while True:        
                 # Read the verification byte. If the verification is zero, quit the loop
-                self.verification = struct.unpack('<I', self.connection.read(struct.calcsize('<I')))[0]
-                if self.verification == 0:
+                verification = struct.unpack('<I', self.connection.read(struct.calcsize('<I')))[0]
+                
+                if verification == 0:
                     break
                 
                 # Read length of JSON (NN model)
@@ -62,15 +63,16 @@ class ReceiveModel(object):
                     stream.write(json_string)                    
                     json_file.write(stream.getvalue())
                     stream.seek(0)
-                    
-                print("JSON file saved!")
+                    print("[RASPBERRY RECEIVE MODEL] Neural Network model saved!")
                 
                 with open("model.h5", "w") as weights_file:
                     stream.write(model_string)
                     weights_file.write(stream.getvalue())
                     stream.seek(0)
+                    print("[RASPBERRY RECEIVE MODEL] Weights saved!")
                 
-                print("Model weights saved!")
+                self.connection.write(struct.pack('<I', len(modelBytes)))
+                self.connection.flush()                   
 
         finally:
             self.closeConnection()

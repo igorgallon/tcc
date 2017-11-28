@@ -5,6 +5,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.cross_validation import train_test_split
 from keras.models import Sequential
 from keras.models import model_from_json
+from keras.models import load_model
 from keras.layers import Activation
 from keras.optimizers import SGD
 from keras.layers import Dense
@@ -44,15 +45,16 @@ class TrainingNeuralNetwork(object):
 			
 			label = img.split(os.path.sep)[-1].split(".")[0]		# Extracts the class label in the format: 'data_training/{class_label}.{image_num}.jpg'
 			self.labels.append(int(label))					# Appends label as integer
-		
+			
 			print("[NEURAL NETWORK] Processed {} images of {}".format(i, len(imageList)))
 		
-		
 		self.data = np.array(self.data) / 255.0					# Converts the pixel values from [0, 255.0] to [0, 1] interval
-		self.labels = np_utils.to_categorical(self.labels, self.numClasses)	# Foward (1): [1,0,0,0] / Left (2): [0,1,0,0] / Right (3): [0,0,1,0] / Backward (4): [0,0,0,1]
+		self.labels = np_utils.to_categorical(self.labels, self.numClasses)	# Backward (0): [1,0,0,0] / Foward (1): [0,1,0,0] / Left (2): [0,0,1,0] / Right (3): [0,0,0,1]
 		
 		print("[NEURAL NETWORK] Partitioning data in training (75%) / testing split (25%)...")
 		(trainData, testData, trainLabels, testLabels) = train_test_split(self.data, self.labels, test_size=self.testSize)
+		
+		np.random.seed(7)
 		
 		# Modeling the network
 		model = Sequential()
@@ -61,16 +63,19 @@ class TrainingNeuralNetwork(object):
 		model.add(Dense(self.nNodesOutput))
 		model.add(Activation("softmax"))
 		
-		# train the model using SGD
+		# Train the model using SGD
 		print("[NEURAL NETWORK] Compiling model...")
 		sgd = SGD(lr=0.01)
 		model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
-		model.fit(trainData, trainLabels, nb_epoch=50, batch_size=128, verbose=1)
+		model.fit(trainData, trainLabels, nb_epoch=50, batch_size=128, verbose=1, shuffle=False)
 		
-		# show the accuracy on the testing set
+		# Show the accuracy on the testing set
 		print("[NEURAL NETWORK] Evaluating on testing set...")
 		(loss, accuracy) = model.evaluate(testData, testLabels, batch_size=128, verbose=1)
 		print("[NEURAL NETWORK] Loss={:.4f}, Accuracy: {:.2f}%".format(loss, accuracy * 100))
+		
+		self.data = []
+		self.labels = []
 		
 		return model
 	
@@ -79,7 +84,8 @@ class TrainingNeuralNetwork(object):
 		json_model = model.to_json()
 		with open("model.json", "w") as json_file:
 			json_file.write(json_model);
-		
+			
 		# Save weights
 		model.save_weights("model.h5")
+		
 		print("[NEURAL NETWORK] Model and weights saved to disk!")

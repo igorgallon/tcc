@@ -14,7 +14,7 @@ class ReceiveDataTraining(object):
         self.PORT = 8000
         
         # Parameter used in binaryzation
-        self.thresholdParam = 70
+        self.thresholdParam = 30
 
         self.frameID = 1
         self.verification = -1
@@ -27,18 +27,18 @@ class ReceiveDataTraining(object):
         self.clientAddress = (self.HOST, self.PORT)
         self.serverSocket.bind(self.clientAddress)                               # Bind connection to Raspberry client
         
-        print("[SERVER] Waiting for a Raspberry connection...")
+        print("[SERVER RECEIVE DATA TRAINING] Waiting for a Raspberry connection...")
         
         # Listen for incoming connections
         self.serverSocket.listen(1)
         
-        print("[SERVER] Connection estabilished...")
+        print("[SERVER RECEIVE DATA TRAINING] Connection estabilished...")
         # Accept a single connection and make a file-like object out of it
         self.connection = self.serverSocket.accept()[0].makefile('rb')
     
     
     def closeConnection(self):
-        print("[SERVER] Closing connection")
+        print("[SERVER RECEIVE DATA TRAINING] Closing connection...")
         self.connection.close()
         self.serverSocket.close()        
         
@@ -56,7 +56,7 @@ class ReceiveDataTraining(object):
                 # (1: foward / 2: left / 3: right / 4: backward)
                 frameClass = struct.unpack('<I', self.connection.read(struct.calcsize('<I')))[0]        
                 
-                print("Classification received: {}".format(frameClass))
+                print("[SERVER RECEIVE DATA TRAINING] Classification received: {}".format(frameClass))
                 
                 #Read the length of the image as a 32-bit unsigned int
                 image_len = struct.unpack('<L', self.connection.read(struct.calcsize('<L')))[0]
@@ -65,13 +65,10 @@ class ReceiveDataTraining(object):
                 #data from the connection
                 image_stream = io.BytesIO()
                 image_stream.write(self.connection.read(image_len))
-                #Rewind the stream, open it as an image with PIL and do some
-                #processing on it
+                #Rewind the stream
                 image_stream.seek(0)
                 
                 image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)          # Converting image stream array into may numpy format 
-                
-                print("[SERVER] Decoding frame...")
                 
                 frame = cv2.imdecode(image_mat, 1)                                          # Decoding the image 
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                             # Apply Gray filter
@@ -86,4 +83,6 @@ class ReceiveDataTraining(object):
                 cv2.waitKey(1)
                 
         finally:
+            
+            cv2.destroyWindow("Streaming from Raspberry Pi")
             self.closeConnection()
