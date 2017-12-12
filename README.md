@@ -10,15 +10,19 @@ Projeto de robô seguidor de linha utilizando visão computacional (OpenCV) e re
 
 - <b>controller_server</b>: códigos para serem executados no Servidor
 
+- <b>tests</b>: código para ser executado no Servidor (ajuste de hiperparâmetros)
+
 - <b>ProjetoProteus</b>: arquivos do projeto no Proteus para confecção da PCB (CI L293D)
 
 ### Passos de execução
 
-1. Carregue o arquivo communicationArduino.ino na placa Arduino
+1. Carregue o arquivo communicationArduino.ino na placa Arduino.
 
 2. Salve os arquivos da pasta controller_raspberry na placa Raspberry Pi e execute o script communicationRaspberry.py
 
 3. Salve os arquivos da pasta controller_server no computador Servidor e execute o script communicationServer.py
+
+4. (Opcional) Salve e execute o arquivo tunning.py da pasta tests no Servidor para ajustar os hiperparâmetetros com dados prévios de treinamento.
 
 ### Requisitos de instalação
 
