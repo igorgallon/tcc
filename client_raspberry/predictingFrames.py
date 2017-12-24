@@ -26,7 +26,7 @@ class PredictingFrames(object):
                
         # Instantiate Serial comunication
         self.arduino = serialPort
-        self.frameRate = 10                     # 10 frames per second
+        self.frameRate = 20    # 20 frames per second
         self.sizeFrame = Resolution(320, 240)
         self.sizeData = (32, 24)
         self.thresholdParam = 30
@@ -71,11 +71,11 @@ class PredictingFrames(object):
             # Initializing picamera
             with picamera.PiCamera() as camera:
                 print("[PREDICTION] Initializing picamera...")
-                
-                camera.resolution = (self.sizeFrame.width, self.sizeFrame.height)   # Sets the camera resolution
+                # Sets the camera resolution
+                camera.resolution = (self.sizeFrame.width, self.sizeFrame.height)
                 camera.framerate = self.frameRate
-                camera.start_preview()                                      # Start a preview
-                time.sleep(2)                                               # Wait camera initializing (adjust luminosity or focus)
+                camera.start_preview()    # Start a preview
+                time.sleep(2)  # Wait camera initializing (adjust luminosity or focus)
                 
                 stream = io.BytesIO()
                 

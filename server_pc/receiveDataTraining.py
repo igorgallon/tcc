@@ -23,9 +23,10 @@ class ReceiveDataTraining(object):
         
         
     def openConnection(self):
-        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
+        # Create a TCP/IP socket
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientAddress = (self.HOST, self.PORT)
-        self.serverSocket.bind(self.clientAddress)                               # Bind connection to Raspberry client
+        self.serverSocket.bind(self.clientAddress) # Bind connection to Raspberry client
         
         print("[SERVER RECEIVE DATA TRAINING] Waiting for a Raspberry connection...")
         
@@ -67,12 +68,12 @@ class ReceiveDataTraining(object):
                 image_stream.write(self.connection.read(image_len))
                 #Rewind the stream
                 image_stream.seek(0)
+                # Converting image stream array into may numpy format 
+                image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)
                 
-                image_mat = np.fromstring(image_stream.getvalue(), dtype=np.uint8)          # Converting image stream array into may numpy format 
-                
-                frame = cv2.imdecode(image_mat, 1)                                          # Decoding the image 
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)                             # Apply Gray filter
-                frame = cv2.threshold(frame, self.thresholdParam, 255, cv2.THRESH_BINARY)[1]     # Binarizing image
+                frame = cv2.imdecode(image_mat, 1)  # Decoding the image 
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)  # Apply Gray filter
+                frame = cv2.threshold(frame, self.thresholdParam, 255, cv2.THRESH_BINARY)[1] # Binarizing image
                 
                 #Save image in path format:
                 #data_training/{class_label}.{image_num}.jpg

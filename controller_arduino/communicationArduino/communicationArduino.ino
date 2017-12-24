@@ -58,34 +58,35 @@ void loop(){
     codeIR = (results.value);
         
     if(codeIR == TRAINING_MODE){
-      irrecv.resume();                          // Receives the next value from IR sensor
+      irrecv.resume();   // Receives the next value from IR sensor
       training();
     }
     if(codeIR == PREDICT_MODE){
-      irrecv.resume();                          // Receives the next value from IR sensor
+      irrecv.resume();   // Receives the next value from IR sensor
       predicting();
     }
   }
 }
 
 void training(){
-
-  Serial.write(msgTraining);                  // Inform the Raspberry that the Training mode has begun
+  // Inform the Raspberry that the Training mode has begun
+  Serial.write(msgTraining);
   enableMotor();                              // Enable motors
   
   while(codeIR != STOP){
     
     if(irrecv.decode(&results)){
       codeIR = (results.value);
-      drive(codeIR);                          // Drive the motor according to the given command
+      drive(codeIR);  // Drive the motor according to the given command
       irrecv.resume();
     } 
   }
 }
 
 void predicting(){
-
-  Serial.write(msgPredicting);                // Inform the Raspberry that the Predicting mode has begun
+  
+  // Inform the Raspberry that the Predicting mode has begun
+  Serial.write(msgPredicting);
 
   enableMotor();
 
@@ -146,7 +147,7 @@ void drive(float command){
   if(command == STOP){
     Serial.write(msgStop);
     stopMotor();
-    disableMotor();                             // Disable motors
+    disableMotor();              // Disable motors
   }
   if(command == PAUSE){
     stopMotor();

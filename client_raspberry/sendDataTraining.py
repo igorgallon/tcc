@@ -20,7 +20,7 @@ class SendDataTraining(object):
         # 192.168.1.103
         self.HOST = host
         self.PORT = 8000
-        self.res = Resolution(320, 240);					    # Frame resolution
+        self.res = Resolution(320, 240); # Frame resolution
         
         self.frameClass = 1
         
@@ -31,11 +31,12 @@ class SendDataTraining(object):
         
         
     def openConnection(self):
-        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
+        # Create a TCP/IP socket
+        self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.serverAddress = (self.HOST, self.PORT)
         
         print("[TRAINING] Trying to connect to Server...")
-        self.clientSocket.connect(self.serverAddress)                            # Connect to PC Server
+        self.clientSocket.connect(self.serverAddress)  # Connect to PC Server
         print("[TRAINING] Connected!")
         # Make a file-like object out of the connection
         self.connection = self.clientSocket.makefile('wb')
@@ -63,12 +64,12 @@ class SendDataTraining(object):
         try:
             # Initializing picamera
             with picamera.PiCamera() as camera:
-                
-                camera.resolution = (self.res.width, self.res.height)       # Sets the camera resolution
-                camera.framerate = 10                                       # 20 frames per second
+                # Sets the camera resolution
+                camera.resolution = (self.res.width, self.res.height)
+                camera.framerate = 20         # 20 frames per second
         
-                camera.start_preview()                                      # Start a preview
-                time.sleep(2)                                               # Wait camera initializing (adjust luminosity or focus)
+                camera.start_preview()        # Start a preview
+                time.sleep(2)  # Wait camera initializing (adjust luminosity or focus)
                 
                 stream = io.BytesIO()
                 

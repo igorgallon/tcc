@@ -29,8 +29,8 @@ def create_model(nodes1=72, nodes2=36, activation='relu'):
     return model
 
 if __name__ == '__main__':
-    size = (32,24)								# Size of imported images (10x smaller than original)
-    testSize = 0.25								# 25% of data destinated to test set
+    size = (32,24) # Size of imported images (10x smaller than original)
+    testSize = 0.25 # 25% of data destinated to test set
     numClasses = 4
     
     # Hyperparameter space
@@ -56,15 +56,17 @@ if __name__ == '__main__':
     
     # Load images into 'data' and extracts the class label into 'labels'
     for (i, img) in enumerate(imageList):
-        image = cv2.imread(img)						# Reads the image
-        imageRawVector = cv2.resize(image, size).flatten()		# Creates a vector of raw pixel intensities (length = w*h*3) - RGB
-        data.append(imageRawVector)				# Appends image as vector format
-    
-        label = img.split(os.path.sep)[-1].split(".")[0]		# Extracts the class label in the format: 'data_training/{class_label}.{image_num}.jpg'
-        labels.append(int(label))					# Appends label as integer
-    
-    data = np.array(data) / 255.0					# Converts the pixel values from [0, 255.0] to [0, 1] interval
-    labels = np_utils.to_categorical(labels, numClasses)	# Backward (0): [1,0,0,0] / Foward (1): [0,1,0,0] / Left (2): [0,0,1,0] / Right (3): [0,0,0,1]
+        image = cv2.imread(img)		# Reads the image
+        # Creates a vector of raw pixel intensities (length = w*h*3) - RGB
+        imageRawVector = cv2.resize(image, size).flatten()
+        data.append(imageRawVector)	# Appends image as vector format
+        # Extracts the class label in the format: 'data_training/{class_label}.{image_num}.jpg'
+        label = img.split(os.path.sep)[-1].split(".")[0]
+        labels.append(int(label))   # Appends label as integer
+    # Converts the pixel values from [0, 255.0] to [0, 1] interval
+    data = np.array(data) / 255.0 
+    # Backward (0): [1,0,0,0] / Foward (1): [0,1,0,0] / Left (2): [0,0,1,0] / Right (3): [0,0,0,1]
+    labels = np_utils.to_categorical(labels, numClasses)
     
     print("Spliting data training...")
     (trainData, testData, trainLabels, testLabels) = train_test_split(data, labels, test_size=testSize)

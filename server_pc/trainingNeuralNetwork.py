@@ -19,9 +19,10 @@ import os
 class TrainingNeuralNetwork(object):
 	
 	def __init__(self):
-		self.size = (32,24)								# Size of imported images (10x smaller than original)
-		self.numClasses = 4								# Foward / Left / Right / Backward
-		self.testSize = 0.25								# 25% of data destinated to test set
+		# Size of imported images (10x smaller than original)
+		self.size = (32,24)
+		self.numClasses = 4 # Foward / Left / Right / Backward
+		self.testSize = 0.25 # 25% of data destinated to test set
 		
 		self.nNodesInput = 32*24*3
 		self.nNodesOutput = self.numClasses
@@ -67,7 +68,9 @@ class TrainingNeuralNetwork(object):
 		print("[NEURAL NETWORK] Compiling model...")
 		sgd = SGD(lr=0.01)
 		model.compile(loss="categorical_crossentropy", optimizer=sgd, metrics=["accuracy"])
-		model.fit(trainData, trainLabels, nb_epoch=50, batch_size=128, verbose=1, shuffle=False)
+		
+		print("[NEURAL NETWORK] Training model...")
+		model.fit(trainData, trainLabels, validation_set=0.2, nb_epoch=50, batch_size=128, verbose=1, shuffle=False)
 		
 		# Show the accuracy on the testing set
 		print("[NEURAL NETWORK] Evaluating on testing set...")

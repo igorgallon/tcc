@@ -12,11 +12,12 @@ class SendModel(object):
     
     
     def openConnection(self):
-        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)    # Create a TCP/IP socket
+        # Create a TCP/IP socket
+        self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientAddress = (self.HOST, self.PORT)
         
         print("[SERVER SEND MODEL] Trying to connect to Raspberry...")
-        self.serverSocket.connect(self.clientAddress)                            # Connect to Raspberry client
+        self.serverSocket.connect(self.clientAddress) # Connect to Raspberry client
     
         # Make a file-like object out of the connection
         self.connection = self.serverSocket.makefile('wb')

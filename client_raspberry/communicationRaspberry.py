@@ -40,7 +40,9 @@ def predicting(arduino):
     
     
 # Instantiate Serial comunication
-print("[Raspberry CONTROLLER] Estabilishing Serial Communication with Arduino...")
+print("[Raspberry CONTROLLER] Estabilishing Serial \
+Communication with Arduino...")
+
 arduino = serial.Serial('/dev/ttyACM0', 9600)
 #arduino = serial.Serial('/dev/ttyAMA0', 9600)
 
@@ -48,7 +50,8 @@ while 1:
     
     try:
         
-        print("[Raspberry CONTROLLER] Waiting for Arduino command...")
+        print("[Raspberry CONTROLLER] Waiting for \
+        Arduino command...")
         msg = arduino.readline()
         print(msg)
         
